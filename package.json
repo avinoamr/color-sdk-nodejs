@@ -1,0 +1,13 @@
+{
+  "name": "color-sdk-nodejs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/avinoamr/color-sdk-nodejs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/avinoamr/color-sdk-nodejs/issues"
+  },
+  "homepage": "https://github.com/avinoamr/color-sdk-nodejs"
+}
