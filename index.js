@@ -4,7 +4,7 @@ util.inherits( SDK, net.Socket );
 
 function SDK ( endpoint, port ) {
     net.Socket.call( this );
-    this.connect( endpoint, port );
+    this.connect( endpoint, port || 29001 );
 }
 
 SDK.prototype.write = function ( type, obj ) {

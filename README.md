@@ -20,7 +20,7 @@ conn.write( "install", { user: "123", device: "iPad", user_ip: "1.2.3.4" } )
 
 The `SDK` class extends Node's [net.Socket](http://nodejs.org/api/net.html#net_class_net_socket) class. Therefor each instance is a separate socket connection.
 
-###### SDK( endpoint, port )
+###### SDK( endpoint [, port] )
 
 Opens the socket connection to the Color server. 
 
