@@ -4,12 +4,24 @@ util.inherits( SDK, net.Socket );
 
 function SDK ( endpoint, port ) {
     net.Socket.call( this );
-    this.connect( endpoint, port || 29001 );
+
+    this.connect( port || 29001, endpoint );
+
+    this.on( "error", function ( err ) {
+        console.error( err.stack );
+    })
+
+    var write = this.write;
+    this.write = function ( type, obj ) {
+        try {
+            var json = JSON.stringify({ type: type, obj: obj })
+        } catch ( err ) {
+            return this.emit( "error", err );
+        }
+        
+        return write.call( this, json );
+    }
+    
 }
 
-SDK.prototype.write = function ( type, obj ) {
-    return net.Socket.prototype.write.call( this, JSON.stringify({
-        type: type,
-        obj: obj 
-    }));
-}
+module.exports.SDK = SDK
