@@ -19,7 +19,7 @@ function SDK ( endpoint, port ) {
             return this.emit( "error", err );
         }
         
-        return write.call( this, json );
+        return write.call( this, json + "\n" );
     }
     
 }
