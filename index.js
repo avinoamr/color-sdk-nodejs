@@ -4,22 +4,28 @@ util.inherits( SDK, net.Socket );
 
 function SDK ( endpoint, port ) {
     net.Socket.call( this );
+    port = port || 29001;
+    var that = this;
+    var write = this.write;
 
-    this.connect( port || 29001, endpoint );
+    connect();
 
     this.on( "error", function ( err ) {
+        if ( err.code == "EPIPE" ) return connect();
         console.error( err.stack );
     })
 
-    var write = this.write;
-    this.write = function ( type, obj ) {
-        try {
-            var json = JSON.stringify({ type: type, obj: obj })
-        } catch ( err ) {
-            return this.emit( "error", err );
+    function connect() {
+        that.connect( port, endpoint );
+        that.write = function ( type, obj ) {
+            try {
+                var json = JSON.stringify({ type: type, obj: obj })
+            } catch ( err ) {
+                return that.emit( "error", err );
+            }
+            
+            return write.call( that, json + "\n" );
         }
-        
-        return write.call( this, json + "\n" );
     }
     
 }
