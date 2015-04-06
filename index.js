@@ -18,14 +18,14 @@ function SDK ( endpoint, port ) {
             console.warn( "COLOR SDK Connection reset. Reconnecting." );
             return connect();
         }
-        console.error( "COLOR SDK", err.stack );
+        console.error( "COLOR SDK" + err.stack );
     })
 
     function connect() {
         var timelog = "COLRO SDK Connected to " + endpoint + ":" + port;
 
         console.time( timelog );
-        console.log( "COLOR SDK Attempting to connect to", endpoint + ":" + port );
+        console.log( "COLOR SDK Connecting to " + endpoint + ":" + port );
         that.connect( port, endpoint, console.timeEnd.bind( console, timelog ) );
         that.write = function ( type, obj ) {
             try {
