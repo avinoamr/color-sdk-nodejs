@@ -36,6 +36,16 @@ function SDK ( endpoint, port ) {
             
             return write.call( that, json + "\n" );
         }
+
+        that.remove = function ( type, id ) {
+            try {
+                var json = JSON.stringify({ type: type, remove: id })
+            } catch ( err ) {
+                return that.emit( "error", err );
+            }
+
+            return write.call( that, json + "\n" );
+        }
     }
     
 }
