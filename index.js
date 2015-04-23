@@ -39,7 +39,7 @@ function SDK ( endpoint, port ) {
 
         that.remove = function ( type, id ) {
             try {
-                var json = JSON.stringify({ type: type, remove: id })
+                var json = JSON.stringify({ type: type, obj: { id: id }, remove: true })
             } catch ( err ) {
                 return that.emit( "error", err );
             }
