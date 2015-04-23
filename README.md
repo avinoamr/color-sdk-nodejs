@@ -34,3 +34,11 @@ Immediately writes an arbitrary object to the Color database.
 * **type** is a string representing the event type or collection of the object
 * **obj** is a simple javascript object. Do not use nested objects or non-primitive data types.
 
+
+###### .remove( type, id )
+
+Removes a row from the database
+
+* **type** is a string representing the event type or collection of the object
+* **id** is the id of the row you wish to remove
+
