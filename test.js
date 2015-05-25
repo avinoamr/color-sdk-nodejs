@@ -17,7 +17,11 @@ process.stdin.on( "data", function ( chunk ) {
         process.exit();
     }
     
-    sdk.write( "sdktest", { user: 15, device: "iPhone" } )
+    var data = generate( 10 );
+    for ( var i = 0 ; i < data.length ; i += 1 ) {
+        sdk.write( "sdktest", data[ i ] )
+    }
+    
     process.stdout.write( "Data sent. Send more [Y/n]? " );
 })
 
@@ -25,4 +29,17 @@ function help () {
     var cmd = process.argv[ 0 ] + " " + process.argv[ 1 ] + " HOSTNAME";
     console.log( cmd );
     process.exit();
+}
+
+function generate( n ) {
+    var data = [];
+    for ( var i = 0 ; i < n ; i += 1 ) {
+        data.push({
+            user: Math.floor( Math.random() * 10000 ),
+            device: "iPhone",
+            name: "בדיקה",
+            age: Math.floor( Math.random() * 100 )
+        })
+    }
+    return data;
 }

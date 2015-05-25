@@ -3,48 +3,59 @@ var util = require( "util" );
 var pkg = require( "./package.json" );
 util.inherits( SDK, net.Socket );
 
+var MAX_RECONNECTS = 3;
+
 function SDK ( endpoint, port ) {
     net.Socket.call( this );
     port = port || 29001;
     var that = this;
     var write = this.write;
+    var timelog = "COLRO SDK Connected to " + endpoint + ":" + port;
+    var pending = [];
+    var send;
+    var reconnects = 0;
 
     console.log( "COLOR SDK Created. Version: " + pkg.version );
 
     connect();
 
     this.on( "error", function ( err ) {
-        if ( err.code == "EPIPE" ) {
-            console.warn( "COLOR SDK Connection reset. Reconnecting." );
+        var isReconnect = [ "EPIPE", "ECONNREFUSED" ].indexOf( err.code ) != -1
+        if ( isReconnect && reconnects < MAX_RECONNECTS ) {
+            var count = reconnects + "/" + MAX_RECONNECTS;
+            reconnects += 1;
+            console.warn( "COLOR SDK Connection reset. Reconnecting. " + count );
             return connect();
         }
         console.error( "COLOR SDK" + err.stack );
     })
 
-    function connect() {
-        var timelog = "COLRO SDK Connected to " + endpoint + ":" + port;
-
-        console.time( timelog );
-        console.log( "COLOR SDK Connecting to " + endpoint + ":" + port );
-        that.connect( port, endpoint, console.timeEnd.bind( console, timelog ) );
-        that.write = function ( type, obj ) {
+    this.on( "connect", function () {
+        console.timeEnd( timelog );
+        reconnects = 0;
+        send = function( entry ) {
             try {
-                var json = JSON.stringify({ type: type, obj: obj })
+                var json = JSON.stringify( entry )
             } catch ( err ) {
                 return that.emit( "error", err );
             }
-            
             return write.call( that, json + "\n" );
+        }
+        pending.forEach( send );
+        pending = [];
+    })
+
+    function connect() {
+        console.time( timelog );
+        console.log( "COLOR SDK Connecting to " + endpoint + ":" + port );
+        that.connect( port, endpoint );
+        send = pending.push.bind( pending );
+        that.write = function ( type, obj ) {
+            return send({ type: type, obj: obj });
         }
 
         that.remove = function ( type, id ) {
-            try {
-                var json = JSON.stringify({ type: type, obj: { id: id }, remove: true })
-            } catch ( err ) {
-                return that.emit( "error", err );
-            }
-
-            return write.call( that, json + "\n" );
+            return send({ type: type, obj: { id: id }, remove: true })
         }
     }
     
