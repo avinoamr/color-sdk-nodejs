@@ -10,7 +10,7 @@ $ npm install git+https://github.com/avinoamr/color-sdk-nodejs.git
 
 ```javascript
 var color = require( "color-sdk-nodejs" );
-var conn = new color.SDK( "192.168.0.1" );
+var conn = new color.SDK( "192.168.0.1", 29001, "ACCOUNTNAME", );
 
 conn.write( "install", { user: "123", device: "iPad", user_ip: "1.2.3.4" } )
 

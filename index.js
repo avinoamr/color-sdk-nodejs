@@ -5,7 +5,7 @@ util.inherits( SDK, net.Socket );
 
 var MAX_RECONNECTS = 3;
 
-function SDK ( endpoint, port ) {
+function SDK ( endpoint, port, account, apikey ) {
     net.Socket.call( this );
     port = port || 29001;
     var that = this;
@@ -51,11 +51,11 @@ function SDK ( endpoint, port ) {
         that.connect( port, endpoint );
         send = pending.push.bind( pending );
         that.write = function ( type, obj ) {
-            return send({ type: type, obj: obj });
+            return send({ type: type, obj: obj, account: account, apikey: apikey });
         }
 
         that.remove = function ( type, id ) {
-            return send({ type: type, obj: { id: id }, remove: true })
+            return send({ type: type, obj: { id: id }, account: account, apikey: apikey, remove: true })
         }
     }
     
