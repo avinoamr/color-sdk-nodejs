@@ -5,7 +5,7 @@ if ( !host ) {
 }
 
 var color = require( "./index" );
-var sdk = new color.SDK( host );
+var sdk = new color.SDK( host, 29001, "color", "c2uxKMGqaq8T9G4N3UP2" );
 
 process.stdin.setEncoding( "utf8" );
 console.log( "CONNECTED." );
