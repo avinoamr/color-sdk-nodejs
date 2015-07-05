@@ -1,64 +1,107 @@
-var net = require( "net" );
+var url = require( "url" );
 var util = require( "util" );
+var http = require( "http" );
+var https = require( "https" );
+var crypto = require( "crypto" );
+var events = require( "events" );
+var qs = require( "querystring" );
 var pkg = require( "./package.json" );
-util.inherits( SDK, net.Socket );
 
-var MAX_RECONNECTS = 3;
+var MAXSIZE = 1024 * 50; // 50kib
+var FLUSH_TIMEOUT = 10 * 1000; // 10 seconds
 
-function SDK ( endpoint, port, account, apikey ) {
-    net.Socket.call( this );
-    port = port || 29001;
-    var that = this;
-    var write = this.write;
-    var timelog = "COLRO SDK Connected to " + endpoint + ":" + port;
-    var pending = [];
-    var send;
-    var reconnects = 0;
+module.exports.SDK = SDK;
 
-    console.log( "COLOR SDK Created. Version: " + pkg.version );
+util.inherits( SDK, events.EventEmitter );
+function SDK ( apikey, apisecret ) {
+    events.EventEmitter.call( this );
 
-    connect();
+    // api-key: ACCOUNT/RAND1
+    // api-secret: BASE64( RAND2/UUID/AWSACCOUNT/REGION )
+    // queue: sdk-ACCOUNT-RAND2
+    var account = apikey.split( "/" )[ 0 ];
+    var decoded = new Buffer( apisecret, "base64" ).toString().split( "/" );
+    var rand = decoded[ 0 ];
+    var awsaccount = decoded[ 2 ];
+    var region = decoded[ 3 ];
 
-    this.on( "error", function ( err ) {
-        var isReconnect = [ "EPIPE", "ECONNREFUSED" ].indexOf( err.code ) != -1
-        if ( isReconnect && reconnects < MAX_RECONNECTS ) {
-            var count = reconnects + "/" + MAX_RECONNECTS;
-            reconnects += 1;
-            console.warn( "COLOR SDK Connection reset. Reconnecting. " + count );
-            return connect();
-        }
-        console.error( "COLOR SDK" + err.stack );
-    })
+    this.apikey = apikey;
+    this.apisecret = apisecret;
+    this._buffer = "";
+    this._timeout = null;
 
-    this.on( "connect", function () {
-        console.timeEnd( timelog );
-        reconnects = 0;
-        send = function( entry ) {
-            try {
-                var json = JSON.stringify( entry )
-            } catch ( err ) {
-                return that.emit( "error", err );
-            }
-            return write.call( that, json + "\n" );
-        }
-        pending.forEach( send );
-        pending = [];
-    })
+    this.qurl = [
+        "https://sqs." + region + ".amazonaws.com",
+        awsaccount,
+        "sdk-" + account + "-" + rand
+    ].join( "/" );
 
-    function connect() {
-        console.time( timelog );
-        console.log( "COLOR SDK Connecting to " + endpoint + ":" + port );
-        that.connect( port, endpoint );
-        send = pending.push.bind( pending );
-        that.write = function ( type, obj ) {
-            return send({ type: type, obj: obj, account: account, apikey: apikey });
-        }
-
-        that.remove = function ( type, id ) {
-            return send({ type: type, obj: { id: id }, account: account, apikey: apikey, remove: true })
-        }
-    }
-    
+    console.log( this.qurl );
 }
 
-module.exports.SDK = SDK
+SDK.prototype.write = function ( table, data ) {
+    clearTimeout( this._timeout );
+    data = copy( data );
+    data.__table = table;
+    this._buffer += JSON.stringify( data ) + "\n";
+
+    if ( this._buffer.length > MAXSIZE ) {
+        this.flush(); // max size is exceeded, flush immediately
+    } else {
+        // flush if no new writes arrive 
+        this._timeout = setTimeout( this.flush.bind( this ), FLUSH_TIMEOUT );
+    }
+    return this;
+}
+
+SDK.prototype.flush = function () {
+    clearTimeout( this._timeout );
+    if ( !this._buffer.length ) return;
+
+    var buffer = this._buffer;
+    this._buffer = "";
+
+    var time = new Date().toISOString();
+    var body = qs.stringify({
+        Action: "SendMessage",
+        MessageBody: buffer
+    });
+
+    var parsedurl = url.parse( this.qurl )
+    var options = {
+        port: 443,
+        method: "POST",
+        path: parsedurl.path,
+        hostname: parsedurl.hostname,
+        headers: {
+            "Content-Length": body.length,
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+    }
+
+    var req = https.request( options, function ( res ) {
+        if ( res.statusCode < 200 || res.statusCode > 300 ) {
+            var code = res.statusCode;
+            var err = "";
+            return res
+                .on( "data", function ( d ) { err += d } )
+                .on( "end", function () {
+                    err = code + ": " + http.STATUS_CODES[ code ] + " " + err;
+                    req.emit( "error", new Error( err ) );
+                })
+                .on( "error", req.emit.bind( req, "error" ) )
+        } else {
+            this.emit( "flush" );
+        }
+    }.bind( this ) )
+    .on( "error", this.emit.bind( this, "error" ) )
+    .on( "end", this.emit.bind( this, "flush" ) );
+    
+    req.end( body );
+
+    return this;
+}
+
+function copy ( obj ) {
+    return JSON.parse( JSON.stringify( obj ) );
+}
