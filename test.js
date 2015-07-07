@@ -9,24 +9,29 @@ sdk.on( "flush", function () {
     console.log( "Flushed" )
 });
 
-process.stdout.write( "Send data [Y/n]? " );
-process.stdin.on( "data", function ( chunk ) {
-    chunk = chunk.toString().trim().toLowerCase();
-    if ( chunk == "n" || chunk == "no" ) {
-        process.stdin.removeListener( "data", arguments.callee );
-        return sdk.on( "flush", function () {
-            process.exit();
-        })
-        .flush();
-    }
-    
-    var data = generate( 10000 );
-    for ( var i = 0 ; i < data.length ; i += 1 ) {
-        sdk.write( "sdktest", data[ i ] )
-    }
-    
-    process.stdout.write( data.length + " entries sent. Send more [Y/n]? " );
-})
+function start() {
+    process.stdout.write( "Send data [Y/n]? " );
+    process.stdin.on( "data", function ( chunk ) {
+        chunk = chunk.toString().trim().toLowerCase();
+        if ( chunk == "n" || chunk == "no" ) {
+            process.stdin.removeListener( "data", arguments.callee );
+            return sdk.on( "flush", function () {
+                process.exit();
+            })
+            .flush();
+        }
+        
+        var data = generate( 10000 );
+        for ( var i = 0 ; i < data.length ; i += 1 ) {
+            sdk.write( "sdktest", data[ i ] )
+        }
+
+        sdk.flush();
+        
+        process.stdout.write( data.length + " entries sent. Send more [Y/n]? " );
+    })
+}
+
 
 function generate( n ) {
     var data = [];
@@ -42,3 +47,13 @@ function generate( n ) {
     }
     return data;
 }
+
+module.start = start;
+module.sdk = sdk;
+module.generate = generate;
+
+if ( require.main === module ) {
+    start();
+}
+
+

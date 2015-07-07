@@ -54,8 +54,9 @@ SDK.prototype.write = function ( table, data ) {
     return this;
 }
 
-SDK.prototype.flush = function () {
+SDK.prototype.flush = function ( callback ) {
     clearTimeout( this._timeout );
+    callback || ( callback = function () {} );
     if ( !this._buffer.length ) return;
 
     var buffer = this._buffer;
@@ -91,11 +92,18 @@ SDK.prototype.flush = function () {
                 })
                 .on( "error", req.emit.bind( req, "error" ) )
         } else {
+            callback();
             this.emit( "flush" );
         }
     }.bind( this ) )
-    .on( "error", this.emit.bind( this, "error" ) )
-    .on( "end", this.emit.bind( this, "flush" ) );
+    .on( "error", function ( err ) {
+        callback( err );
+        this.emit( "error", err );
+    }.bind( this ) )
+    .on( "end", function () {
+        callback();
+        this.emit( "flush" );
+    }.bind( this ) );
     
     req.end( body );
 
