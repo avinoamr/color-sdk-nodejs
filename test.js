@@ -15,7 +15,7 @@ function start() {
         chunk = chunk.toString().trim().toLowerCase();
         if ( chunk == "n" || chunk == "no" ) {
             process.stdin.removeListener( "data", arguments.callee );
-            return sdk.on( "flush", function () {
+            return sdk.on( "done", function () {
                 process.exit();
             })
             .flush();

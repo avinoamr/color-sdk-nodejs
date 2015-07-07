@@ -36,7 +36,7 @@ function SDK ( apikey, apisecret ) {
         "sdk-" + account + "-" + rand
     ].join( "/" );
 
-    console.log( this.qurl );
+    this.flushcnt = 0;
 }
 
 SDK.prototype.write = function ( table, data ) {
@@ -57,8 +57,9 @@ SDK.prototype.write = function ( table, data ) {
 SDK.prototype.flush = function ( callback ) {
     clearTimeout( this._timeout );
     callback || ( callback = function () {} );
-    if ( !this._buffer.length ) return;
+    if ( !this._buffer.length ) return callback();
 
+    this.flushcnt += 1;
     var buffer = this._buffer;
     this._buffer = "";
 
@@ -92,17 +93,18 @@ SDK.prototype.flush = function ( callback ) {
                 })
                 .on( "error", req.emit.bind( req, "error" ) )
         } else {
-            callback();
-            this.emit( "flush" );
+            req.emit( "end" );
         }
     }.bind( this ) )
-    .on( "error", function ( err ) {
+    .once( "error", function ( err ) {
         callback( err );
         this.emit( "error", err );
+        if ( !--this.flushcnt ) { this.emit( "done" ) }
     }.bind( this ) )
-    .on( "end", function () {
+    .once( "end", function () {
         callback();
         this.emit( "flush" );
+        if ( !--this.flushcnt ) { this.emit( "done" ) }
     }.bind( this ) );
     
     req.end( body );
