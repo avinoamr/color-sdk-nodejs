@@ -7,7 +7,7 @@ var events = require( "events" );
 var qs = require( "querystring" );
 var pkg = require( "./package.json" );
 
-var MAXSIZE = 1024 * 50; // 50kib
+var MAXSIZE = 1024 * 200; // 200kib
 var FLUSH_TIMEOUT = 10 * 1000; // 10 seconds
 
 module.exports.SDK = SDK;
@@ -37,33 +37,54 @@ function SDK ( apikey, apisecret ) {
     ].join( "/" );
 
     this.flushcnt = 0;
+    this.eventscnt = 0;
+
+    log( "Created. Version: " + pkg.version );
+    log( "Queue URL: ", this.qurl );
+
+    this.on( "error", function ( err ) {
+        log( "ERROR:", err );
+    })
+
+    this.on( "flush", function ( cnt ) {
+        log( cnt, "Flushed Successfully" );
+    })
+
+    this.on( "empty", function () {
+        log( "Empty" );
+    })
 }
 
 SDK.prototype.write = function ( table, data ) {
-    clearTimeout( this._timeout );
     data = copy( data );
     data.__table = table;
     this._buffer += JSON.stringify( data ) + "\n";
 
     if ( this._buffer.length > MAXSIZE ) {
         this.flush(); // max size is exceeded, flush immediately
-    } else {
-        // flush if no new writes arrive 
+    } else if ( !this._timeout ) {
+        // flush something after the flush timeout 
         this._timeout = setTimeout( this.flush.bind( this ), FLUSH_TIMEOUT );
     }
+
+    this.eventscnt += 1;
     return this;
 }
 
 SDK.prototype.flush = function ( callback ) {
     clearTimeout( this._timeout );
+    this._timeout = null;
     callback || ( callback = function () {} );
     if ( !this._buffer.length ) {
         callback();
         if ( !this.flushcnt ) {
             this.emit( "empty" )
         }
+        return
     }
 
+    var eventscnt = this.eventscnt;
+    this.eventscnt = 0;
     this.flushcnt += 1;
     var buffer = this._buffer;
     this._buffer = "";
@@ -71,7 +92,13 @@ SDK.prototype.flush = function ( callback ) {
     var time = new Date().toISOString();
     var body = qs.stringify({
         Action: "SendMessage",
-        MessageBody: buffer
+        MessageBody: buffer,
+        "MessageAttribute.1.Name": "key",
+        "MessageAttribute.1.Value.DataType": "String",
+        "MessageAttribute.1.Value.StringValue": this.apikey,
+        "MessageAttribute.2.Name": "secret",
+        "MessageAttribute.2.Value.DataType": "String",
+        "MessageAttribute.2.Value.StringValue": this.apisecret
     });
 
     var parsedurl = url.parse( this.qurl )
@@ -101,6 +128,10 @@ SDK.prototype.flush = function ( callback ) {
             req.emit( "end" );
         }
     }.bind( this ) )
+    .on( "error", function ( err ) {
+        console.log( body );
+        this.emit( "error", err );
+    }.bind( this ) )
     .once( "error", function ( err ) {
         callback( err );
         this.emit( "error", err );
@@ -108,7 +139,7 @@ SDK.prototype.flush = function ( callback ) {
     }.bind( this ) )
     .once( "end", function () {
         callback();
-        this.emit( "flush" );
+        this.emit( "flush", eventscnt );
         if ( !--this.flushcnt && !this._buffer ) { this.emit( "empty" ) }
     }.bind( this ) );
     
@@ -119,4 +150,10 @@ SDK.prototype.flush = function ( callback ) {
 
 function copy ( obj ) {
     return JSON.parse( JSON.stringify( obj ) );
+}
+
+function log() {
+    var args = [].slice.call( arguments );
+    args = [ new Date().toISOString(), "COLOR-SDK" ].concat( args );
+    console.log.apply( console, args );
 }
