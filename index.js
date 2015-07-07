@@ -99,12 +99,12 @@ SDK.prototype.flush = function ( callback ) {
     .once( "error", function ( err ) {
         callback( err );
         this.emit( "error", err );
-        if ( !--this.flushcnt ) { this.emit( "done" ) }
+        if ( !--this.flushcnt && !this._buffer ) { this.emit( "empty" ) }
     }.bind( this ) )
     .once( "end", function () {
         callback();
         this.emit( "flush" );
-        if ( !--this.flushcnt ) { this.emit( "done" ) }
+        if ( !--this.flushcnt && !this._buffer ) { this.emit( "empty" ) }
     }.bind( this ) );
     
     req.end( body );

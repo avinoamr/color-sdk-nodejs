@@ -15,7 +15,8 @@ function start() {
         chunk = chunk.toString().trim().toLowerCase();
         if ( chunk == "n" || chunk == "no" ) {
             process.stdin.removeListener( "data", arguments.callee );
-            return sdk.on( "done", function () {
+            return sdk.on( "empty", function () {
+                console.log( "Empty buffer, safe to exit" );
                 process.exit();
             })
             .flush();
