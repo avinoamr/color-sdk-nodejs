@@ -57,7 +57,12 @@ SDK.prototype.write = function ( table, data ) {
 SDK.prototype.flush = function ( callback ) {
     clearTimeout( this._timeout );
     callback || ( callback = function () {} );
-    if ( !this._buffer.length ) return callback();
+    if ( !this._buffer.length ) {
+        callback();
+        if ( !this.flushcnt ) {
+            this.emit( "empty" )
+        }
+    }
 
     this.flushcnt += 1;
     var buffer = this._buffer;
