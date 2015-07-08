@@ -5,9 +5,6 @@ var SECRET = "ZGttNWJ1dnZhZzg1eHcyOS8wMDNhMTRiMi05NzI0LTQxM2YtYTcxMi05ODdlMjNhYj
 
 var color = require( "./index" );
 var sdk = new color.SDK( KEY, SECRET )
-sdk.on( "flush", function () {
-    console.log( "Flushed" )
-});
 
 function start() {
     process.stdout.write( "Send data [Y/n]? " );

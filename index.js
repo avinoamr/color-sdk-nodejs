@@ -71,22 +71,24 @@ SDK.prototype.write = function ( table, data ) {
     return this;
 }
 
-SDK.prototype.flush = function ( callback ) {
+SDK.prototype.flush = function () {
     clearTimeout( this._timeout );
     this._timeout = null;
-    callback || ( callback = function () {} );
     if ( !this._buffer.length ) {
-        callback();
         if ( !this.flushcnt ) {
             this.emit( "empty" )
         }
         return
     }
 
+    var that = this;
+    var done = false;
+    var retries = 3;
     var eventscnt = this.eventscnt;
+    var buffer = this._buffer;
+
     this.eventscnt = 0;
     this.flushcnt += 1;
-    var buffer = this._buffer;
     this._buffer = "";
 
     var time = new Date().toISOString();
@@ -113,37 +115,49 @@ SDK.prototype.flush = function ( callback ) {
         }
     }
 
-    var req = https.request( options, function ( res ) {
-        if ( res.statusCode < 200 || res.statusCode > 300 ) {
-            var code = res.statusCode;
-            var err = "";
-            return res
-                .on( "data", function ( d ) { err += d } )
-                .on( "end", function () {
-                    err = code + ": " + http.STATUS_CODES[ code ] + " " + err;
-                    req.emit( "error", new Error( err ) );
-                })
-                .on( "error", req.emit.bind( req, "error" ) )
-        } else {
-            req.emit( "end" );
+    request();
+
+    function request() {
+        log( "Sending", body.length, "bytes to SQS" );
+        var req = https.request( options, function ( res ) {
+            if ( res.statusCode < 200 || res.statusCode > 300 ) {
+                var code = res.statusCode;
+                var err = "";
+                return res
+                    .on( "data", function ( d ) { err += d } )
+                    .on( "end", function () {
+                        err = code + ": " + http.STATUS_CODES[ code ] + " " + err;
+                        onerror( new Error( err ) );
+                    })
+                    .on( "error", onerror )
+            }
+            
+            onend();
+        }.bind( this ) )
+        .on( "error", onerror )
+        .once( "end", onend );
+        req.end( body );
+    }
+
+    function onerror ( err ) {
+        that.emit( "error", err );
+        if ( done ) return;
+        if ( retries-- > 0 ) {
+            log( "Retrying after error, in 2s. Remaining: ", retries );
+            return setTimeout( request, 2000 );
         }
-    }.bind( this ) )
-    .on( "error", function ( err ) {
-        console.log( body );
-        this.emit( "error", err );
-    }.bind( this ) )
-    .once( "error", function ( err ) {
-        callback( err );
-        this.emit( "error", err );
-        if ( !--this.flushcnt && !this._buffer ) { this.emit( "empty" ) }
-    }.bind( this ) )
-    .once( "end", function () {
-        callback();
-        this.emit( "flush", eventscnt );
-        if ( !--this.flushcnt && !this._buffer ) { this.emit( "empty" ) }
-    }.bind( this ) );
-    
-    req.end( body );
+        if ( !--that.flushcnt && !that._buffer ) { 
+            that.emit( "empty" ) 
+        }
+        done = true;
+    }
+
+    function onend() {
+        that.emit( "flush", eventscnt );
+        if ( !--that.flushcnt && !that._buffer ) { 
+            that.emit( "empty" ) 
+        }
+    }
 
     return this;
 }
