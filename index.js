@@ -7,7 +7,7 @@ var events = require( "events" );
 var qs = require( "querystring" );
 var pkg = require( "./package.json" );
 
-var MAXSIZE = 1024 * 200; // 200kib
+var MAXSIZE = 1024 * 150; // 200kib
 var FLUSH_TIMEOUT = 10 * 1000; // 10 seconds
 
 module.exports.SDK = SDK;
@@ -37,6 +37,7 @@ function SDK ( apikey, apisecret ) {
     ].join( "/" );
 
     this.flushcnt = 0;
+    this.flushid = 0;
     this.eventscnt = 0;
 
     log( "Created. Version: " + pkg.version );
@@ -46,8 +47,12 @@ function SDK ( apikey, apisecret ) {
         log( "ERROR:", err );
     })
 
-    this.on( "flush", function ( cnt ) {
-        log( cnt, "Flushed Successfully" );
+    this.on( "send", function ( data ) {
+        log( "Sending #" + data.id + ":", data.count, "events", "(" + data.size + " bytes)" );
+    })
+
+    this.on( "flush", function ( data ) {
+        log( "Sent Successfuly #" + data.id + ":", data.count, "events", "(" +data.size + " bytes)" );
     })
 
     this.on( "empty", function () {
@@ -59,6 +64,7 @@ SDK.prototype.write = function ( table, data ) {
     data = copy( data );
     data.__table = table;
     this._buffer += JSON.stringify( data ) + "\n";
+    this.eventscnt += 1;
 
     if ( this._buffer.length > MAXSIZE ) {
         this.flush(); // max size is exceeded, flush immediately
@@ -67,7 +73,6 @@ SDK.prototype.write = function ( table, data ) {
         this._timeout = setTimeout( this.flush.bind( this ), FLUSH_TIMEOUT );
     }
 
-    this.eventscnt += 1;
     return this;
 }
 
@@ -84,8 +89,9 @@ SDK.prototype.flush = function () {
     var that = this;
     var done = false;
     var retries = 3;
-    var eventscnt = this.eventscnt;
+    var count = this.eventscnt;
     var buffer = this._buffer;
+    var flushid = ++this.flushid;
 
     this.eventscnt = 0;
     this.flushcnt += 1;
@@ -103,6 +109,7 @@ SDK.prototype.flush = function () {
         "MessageAttribute.2.Value.StringValue": this.apisecret
     });
 
+    var size = body.length;
     var parsedurl = url.parse( this.qurl )
     var options = {
         port: 443,
@@ -110,7 +117,7 @@ SDK.prototype.flush = function () {
         path: parsedurl.path,
         hostname: parsedurl.hostname,
         headers: {
-            "Content-Length": body.length,
+            "Content-Length": size,
             "Content-Type": "application/x-www-form-urlencoded"
         }
     }
@@ -118,7 +125,7 @@ SDK.prototype.flush = function () {
     request();
 
     function request() {
-        log( "Sending", body.length, "bytes to SQS" );
+        that.emit( "send", { id: flushid, count: count, size: size } );
         var req = https.request( options, function ( res ) {
             if ( res.statusCode < 200 || res.statusCode > 300 ) {
                 var code = res.statusCode;
@@ -133,7 +140,7 @@ SDK.prototype.flush = function () {
             }
             
             onend();
-        }.bind( this ) )
+        })
         .on( "error", onerror )
         .once( "end", onend );
         req.end( body );
@@ -153,7 +160,7 @@ SDK.prototype.flush = function () {
     }
 
     function onend() {
-        that.emit( "flush", eventscnt );
+        that.emit( "flush", { id: flushid, count: count, size: size } );
         if ( !--that.flushcnt && !that._buffer ) { 
             that.emit( "empty" ) 
         }
