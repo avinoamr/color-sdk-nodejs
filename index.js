@@ -2,7 +2,6 @@ var url = require( "url" );
 var util = require( "util" );
 var http = require( "http" );
 var https = require( "https" );
-var crypto = require( "crypto" );
 var events = require( "events" );
 var qs = require( "querystring" );
 var pkg = require( "./package.json" );
@@ -106,7 +105,10 @@ SDK.prototype.flush = function () {
         "MessageAttribute.1.Value.StringValue": this.apikey,
         "MessageAttribute.2.Name": "secret",
         "MessageAttribute.2.Value.DataType": "String",
-        "MessageAttribute.2.Value.StringValue": this.apisecret
+        "MessageAttribute.2.Value.StringValue": this.apisecret,
+        "MessageAttribute.3.Name": "sdk",
+        "MessageAttribute.3.Value.DataType": "String",
+        "MessageAttribute.3.Value.StringValue": pkg.name + "-" + pkg.version,
     });
 
     var size = body.length;
