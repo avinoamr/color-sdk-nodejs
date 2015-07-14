@@ -6,7 +6,7 @@ var events = require( "events" );
 var qs = require( "querystring" );
 var pkg = require( "./package.json" );
 
-var MAXSIZE = 1024 * 150; // 200kib
+var MAXSIZE = 1024 * 250; // 200kib
 var FLUSH_TIMEOUT = 10 * 1000; // 10 seconds
 
 module.exports.SDK = SDK;
@@ -91,6 +91,7 @@ SDK.prototype.flush = function () {
     var count = this.eventscnt;
     var buffer = this._buffer;
     var flushid = ++this.flushid;
+    var size = buffer.length;
 
     this.eventscnt = 0;
     this.flushcnt += 1;
@@ -111,7 +112,6 @@ SDK.prototype.flush = function () {
         "MessageAttribute.3.Value.StringValue": pkg.name + "-" + pkg.version,
     });
 
-    var size = body.length;
     var parsedurl = url.parse( this.qurl )
     var options = {
         port: 443,
@@ -119,7 +119,7 @@ SDK.prototype.flush = function () {
         path: parsedurl.path,
         hostname: parsedurl.hostname,
         headers: {
-            "Content-Length": size,
+            "Content-Length": body.length,
             "Content-Type": "application/x-www-form-urlencoded"
         }
     }
