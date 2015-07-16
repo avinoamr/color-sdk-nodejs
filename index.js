@@ -47,7 +47,7 @@ function SDK ( apikey, apisecret ) {
     })
 
     this.on( "send", function ( data ) {
-        log( "Sending #" + data.id + ":", data.count, "events", "(" + data.size + " bytes)" );
+        log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", data.count, "events", "(" + data.size + " bytes)" );
     })
 
     this.on( "flush", function ( data ) {
@@ -125,11 +125,12 @@ SDK.prototype.flush = function () {
     }
 
     var t;
+    var tries = 0;
     request();
 
     function request() {
         t = new Date().getTime();
-        that.emit( "send", { id: flushid, count: count, size: size } );
+        that.emit( "send", { id: flushid, count: count, size: size, tries: ++tries } );
         var req = https.request( options, function ( res ) {
             if ( res.statusCode < 200 || res.statusCode > 300 ) {
                 var code = res.statusCode;
