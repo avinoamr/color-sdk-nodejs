@@ -43,7 +43,7 @@ function SDK ( apikey, apisecret ) {
     log( "Queue URL: ", this.qurl );
 
     this.on( "error", function ( err ) {
-        log( "ERROR:", err );
+        log( "ERROR #" + err.id + ":", err );
     })
 
     this.on( "send", function ( data ) {
@@ -151,6 +151,7 @@ SDK.prototype.flush = function () {
     }
 
     function onerror ( err ) {
+        err.id = flushid;
         that.emit( "error", err );
         if ( done ) return;
         if ( retries-- > 0 ) {
