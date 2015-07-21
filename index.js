@@ -49,7 +49,8 @@ function SDK ( apikey, apisecret ) {
     this.on( "send", function ( data ) {
         log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
             data.count, "events", "(" + data.size + " bytes)",
-            this.flushcnt, "flushes remaining"
+            this.flushcnt, "flushes remaining",
+            this._buffer.length, "buffer size"
         );
     })
 
@@ -57,7 +58,8 @@ function SDK ( apikey, apisecret ) {
         log( "Sent Successfuly #" + data.id + ":", 
             data.count, "events", "(" +data.size + " bytes)", 
             "in", data.t + "s",
-            this.flushcnt, "flushes remaining"
+            this.flushcnt, "flushes remaining",
+            this._buffer.length, "buffer size"
         );
     })
 
