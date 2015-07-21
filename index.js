@@ -47,11 +47,18 @@ function SDK ( apikey, apisecret ) {
     })
 
     this.on( "send", function ( data ) {
-        log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", data.count, "events", "(" + data.size + " bytes)" );
+        log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
+            data.count, "events", "(" + data.size + " bytes)",
+            this.flushcnt, "flushes remaining"
+        );
     })
 
     this.on( "flush", function ( data ) {
-        log( "Sent Successfuly #" + data.id + ":", data.count, "events", "(" +data.size + " bytes)", "in", data.t + "s" );
+        log( "Sent Successfuly #" + data.id + ":", 
+            data.count, "events", "(" +data.size + " bytes)", 
+            "in", data.t + "s",
+            this.flushcnt, "flushes remaining"
+        );
     })
 
     this.on( "empty", function () {
@@ -148,6 +155,7 @@ SDK.prototype.flush = function () {
         })
         .on( "error", onerror )
         .once( "end", onend );
+        req.setTimeout( 300 * 1000 );
         req.end( body );
     }
 
