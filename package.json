@@ -1,6 +1,6 @@
 {
   "name": "color-sdk-nodejs",
-  "version": "2.1.17",
+  "version": "2.1.18",
   "main": "index.js",
   "repository": {
     "type": "git",
