@@ -5,29 +5,38 @@ var SECRET = "ZGttNWJ1dnZhZzg1eHcyOS8wMDNhMTRiMi05NzI0LTQxM2YtYTcxMi05ODdlMjNhYj
 
 var color = require( "./index" );
 var sdk = new color.SDK( KEY, SECRET )
+var N = +process.argv[ 2 ];
 
 function start() {
-    process.stdout.write( "Send data [Y/n]? " );
-    process.stdin.on( "data", function ( chunk ) {
-        chunk = chunk.toString().trim().toLowerCase();
-        if ( chunk == "n" || chunk == "no" ) {
-            process.stdin.removeListener( "data", arguments.callee );
-            return sdk.on( "empty", function () {
-                console.log( "Empty buffer, safe to exit" );
-                process.exit();
-            })
-            .flush();
-        }
-        
-        var data = generate( 10000 );
-        for ( var i = 0 ; i < data.length ; i += 1 ) {
-            sdk.write( "sdktest", data[ i ] )
-        }
 
-        sdk.flush();
+    var data = generate( N );
+    for ( var i = 0 ; i < data.length ; i += 1 ) {
+        sdk.write( "sdktest", data[ i ] )
+    }
+
+    sdk.flush();
+
+    // process.stdout.write( "Send data [Y/n]? " );
+    // process.stdin.on( "data", function ( chunk ) {
+    //     chunk = chunk.toString().trim().toLowerCase();
+    //     if ( chunk == "n" || chunk == "no" ) {
+    //         process.stdin.removeListener( "data", arguments.callee );
+    //         return sdk.on( "empty", function () {
+    //             console.log( "Empty buffer, safe to exit" );
+    //             process.exit();
+    //         })
+    //         .flush();
+    //     }
         
-        process.stdout.write( data.length + " entries sent. Send more [Y/n]? " );
-    })
+    //     var data = generate( 10000 );
+    //     for ( var i = 0 ; i < data.length ; i += 1 ) {
+    //         sdk.write( "sdktest", data[ i ] )
+    //     }
+
+    //     sdk.flush();
+        
+    //     process.stdout.write( data.length + " entries sent. Send more [Y/n]? " );
+    // })
 }
 
 
