@@ -64,6 +64,7 @@ function SDK ( apikey, apisecret ) {
     })
 
     this.on( "empty", function () {
+        this.flushcnt = 0;
         log( "Empty" );
     })
 }
@@ -169,7 +170,7 @@ SDK.prototype.flush = function () {
             log( "Retrying after error, in 2s. Remaining: ", retries );
             return setTimeout( request, 2000 );
         }
-        if ( !--that.flushcnt && !that._buffer ) { 
+        if ( --that.flushcnt <= 0 && !that._buffer ) { 
             that.emit( "empty" ) 
         }
         done = true;
@@ -178,9 +179,11 @@ SDK.prototype.flush = function () {
     function onend() {
         t = ( new Date().getTime() - t ) / 1000;
         that.emit( "flush", { id: flushid, count: count, size: size, t: t } );
-        if ( !--that.flushcnt && !that._buffer ) { 
+        if ( done ) return;
+        if ( --that.flushcnt <= 0 && !that._buffer ) { 
             that.emit( "empty" ) 
         }
+        done = true;
     }
 
     return this;
