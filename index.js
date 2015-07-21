@@ -157,7 +157,6 @@ SDK.prototype.flush = function () {
             onend();
         })
         .on( "error", onerror )
-        .once( "end", onend );
         req.setTimeout( 300 * 1000 );
         req.end( body );
     }
