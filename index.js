@@ -46,12 +46,15 @@ function SDK ( apikey, apisecret ) {
         log( "ERROR #" + err.id + ":", err );
     })
 
+    this.on( "warn", function ( err ) {
+        log( "WARN #" + err.id + ":", err );
+    })
+
     this.on( "send", function ( data ) {
         log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
             data.count, "events", 
             "(" + data.size + " bytes)",
-            this.flushcnt, "flushes remaining",
-            this._buffer.length, "buffer size"
+            this.flushcnt, "flushes remaining"
         );
     })
 
@@ -60,8 +63,7 @@ function SDK ( apikey, apisecret ) {
             data.count, "events", 
             "(" + data.size + " bytes)",
             "in", data.t + "s",
-            this.flushcnt, "flushes remaining",
-            this._buffer.length, "buffer size"
+            this.flushcnt, "flushes remaining"
         );
     })
 
@@ -150,33 +152,38 @@ SDK.prototype.flush = function () {
             tries: ++tries 
         });
         var req = https.request( options, function ( res ) {
-            if ( res.statusCode < 200 || res.statusCode > 300 ) {
-                var code = res.statusCode;
-                var err = "";
-                return res
-                    .on( "data", function ( d ) { err += d } )
-                    .on( "end", function () {
-                        err = code + ": " + http.STATUS_CODES[ code ] + " " + err;
+            var code = res.statusCode;
+            var body = "";
+            res
+                .on( "error", onerror )
+                .on( "data", function ( d ) { body += d.toString(); } )
+                .on( "end", function () {
+                    if ( code < 200 || code > 300 ) {
+                        var err = [
+                            code, ":", http.STATUS_CODES[ code ], body
+                        ].join( " " );
                         onerror( new Error( err ) );
-                    })
-                    .on( "error", onerror )
-            }
-            
-            onend();
+                    } else {
+                        onend();
+                    }
+                })
+                
         })
         .on( "error", onerror )
-        req.setTimeout( 300 * 1000 );
+        req.setTimeout( 60 * 1000 );
         req.end( body );
     }
 
     function onerror ( err ) {
         err.id = flushid;
-        that.emit( "error", err );
+        that.emit( "warn", err );
         if ( done ) return;
         if ( retries-- > 0 ) {
             log( "Retrying after error, in 2s. Remaining: ", retries );
             return setTimeout( request, 2000 );
         }
+
+        that.emit( "error", err );
         if ( --that.flushcnt <= 0 && !that._buffer ) { 
             that.emit( "empty" ) 
         }
