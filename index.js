@@ -6,8 +6,8 @@ var events = require( "events" );
 var qs = require( "querystring" );
 var pkg = require( "./package.json" );
 
-var MAXSIZE = 1024 * 250; // 200kib
-var FLUSH_TIMEOUT = 10 * 1000; // 10 seconds
+var MAXSIZE = 1024 * 250; // 250kib
+var FLUSH_TIMEOUT = 2 * 1000; // 2 seconds
 
 module.exports.SDK = SDK;
 
@@ -49,7 +49,7 @@ function SDK ( apikey, apisecret ) {
     this.on( "send", function ( data ) {
         log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
             data.count, "events", 
-            "(" + data.size + " / " + data.fullsize + " bytes)",
+            "(" + data.size + " bytes)",
             this.flushcnt, "flushes remaining",
             this._buffer.length, "buffer size"
         );
@@ -58,7 +58,7 @@ function SDK ( apikey, apisecret ) {
     this.on( "flush", function ( data ) {
         log( "Sent Successfuly #" + data.id + ":", 
             data.count, "events", 
-            "(" + data.size + " / " + data.fullsize + " bytes)",
+            "(" + data.size + " bytes)",
             "in", data.t + "s",
             this.flushcnt, "flushes remaining",
             this._buffer.length, "buffer size"
@@ -122,21 +122,7 @@ SDK.prototype.flush = function () {
         "MessageAttribute.3.Name=sdk",
         "MessageAttribute.3.Value.DataType=String",
         "MessageAttribute.3.Value.StringValue=" + pkg.name + "-" + pkg.version,
-    ].join( "&" )
-
-    // var body = qs.stringify({
-    //     Action: "SendMessage",
-    //     MessageBody: buffer,
-    //     "MessageAttribute.1.Name": "key",
-    //     "MessageAttribute.1.Value.DataType": "String",
-    //     "MessageAttribute.1.Value.StringValue": this.apikey,
-    //     "MessageAttribute.2.Name": "secret",
-    //     "MessageAttribute.2.Value.DataType": "String",
-    //     "MessageAttribute.2.Value.StringValue": this.apisecret,
-    //     "MessageAttribute.3.Name": "sdk",
-    //     "MessageAttribute.3.Value.DataType": "String",
-    //     "MessageAttribute.3.Value.StringValue": pkg.name + "-" + pkg.version,
-    // });
+    ].join( "&" );
 
     var parsedurl = url.parse( this.qurl )
     var options = {
