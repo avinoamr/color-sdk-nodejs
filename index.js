@@ -110,19 +110,33 @@ SDK.prototype.flush = function () {
     this._buffer = "";
 
     var time = new Date().toISOString();
-    var body = qs.stringify({
-        Action: "SendMessage",
-        MessageBody: buffer,
-        "MessageAttribute.1.Name": "key",
-        "MessageAttribute.1.Value.DataType": "String",
-        "MessageAttribute.1.Value.StringValue": this.apikey,
-        "MessageAttribute.2.Name": "secret",
-        "MessageAttribute.2.Value.DataType": "String",
-        "MessageAttribute.2.Value.StringValue": this.apisecret,
-        "MessageAttribute.3.Name": "sdk",
-        "MessageAttribute.3.Value.DataType": "String",
-        "MessageAttribute.3.Value.StringValue": pkg.name + "-" + pkg.version,
-    });
+    var body = [
+        "Action=SendMessage",
+        "MessageBody=" + buffer,
+        "MessageAttribute.1.Name=key",
+        "MessageAttribute.1.Value.DataType=String",
+        "MessageAttribute.1.Value.StringValue=" + this.apikey,
+        "MessageAttribute.2.Name=secret",
+        "MessageAttribute.2.Value.DataType=String",
+        "MessageAttribute.2.Value.StringValue=" + this.apisecret,
+        "MessageAttribute.3.Name=sdk",
+        "MessageAttribute.3.Value.DataType=String",
+        "MessageAttribute.3.Value.StringValue=" + pkg.name + "-" + pkg.version,
+    ].join( "&" )
+
+    // var body = qs.stringify({
+    //     Action: "SendMessage",
+    //     MessageBody: buffer,
+    //     "MessageAttribute.1.Name": "key",
+    //     "MessageAttribute.1.Value.DataType": "String",
+    //     "MessageAttribute.1.Value.StringValue": this.apikey,
+    //     "MessageAttribute.2.Name": "secret",
+    //     "MessageAttribute.2.Value.DataType": "String",
+    //     "MessageAttribute.2.Value.StringValue": this.apisecret,
+    //     "MessageAttribute.3.Name": "sdk",
+    //     "MessageAttribute.3.Value.DataType": "String",
+    //     "MessageAttribute.3.Value.StringValue": pkg.name + "-" + pkg.version,
+    // });
 
     var parsedurl = url.parse( this.qurl )
     var options = {
