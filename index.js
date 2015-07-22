@@ -74,7 +74,7 @@ function SDK ( apikey, apisecret ) {
 SDK.prototype.write = function ( table, data ) {
     data = copy( data );
     data.__table = table;
-    this._buffer += JSON.stringify( data ) + "\n";
+    this._buffer += encodeURIComponent( JSON.stringify( data ) + "\n" );
     this.eventscnt += 1;
 
     if ( this._buffer.length > MAXSIZE ) {
