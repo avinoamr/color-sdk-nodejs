@@ -26,6 +26,7 @@ function SDK ( apikey, apisecret ) {
 
     this.apikey = apikey;
     this.apisecret = apisecret;
+    this.logger = console.log;
     this._buffer = "";
     this._timeout = null;
 
@@ -39,19 +40,19 @@ function SDK ( apikey, apisecret ) {
     this.flushid = 0;
     this.eventscnt = 0;
 
-    log( "Created. Version: " + pkg.version );
-    log( "Queue URL: ", this.qurl );
+    this._log( "Created. Version: " + pkg.version );
+    this._log( "Queue URL: ", this.qurl );
 
     this.on( "error", function ( err ) {
-        log( "ERROR #" + err.id + ":", err );
+        this._log( "ERROR #" + err.id + ":", err );
     })
 
     this.on( "warn", function ( err ) {
-        log( "WARN #" + err.id + ":", err );
+        this._log( "WARN #" + err.id + ":", err );
     })
 
     this.on( "send", function ( data ) {
-        log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
+        this._log( "Sending #" + data.id + ":", "tries: " + data.tries + " ,", 
             data.count, "events", 
             "(" + data.size + " bytes)",
             this.flushcnt, "flushes remaining"
@@ -59,7 +60,7 @@ function SDK ( apikey, apisecret ) {
     })
 
     this.on( "flush", function ( data ) {
-        log( "Sent Successfuly #" + data.id + ":", 
+        this._log( "Sent Successfuly #" + data.id + ":", 
             data.count, "events", 
             "(" + data.size + " bytes)",
             "in", data.t + "s",
@@ -69,7 +70,7 @@ function SDK ( apikey, apisecret ) {
 
     this.on( "empty", function () {
         this.flushcnt = 0;
-        log( "Empty" );
+        this._log( "Empty" );
     })
 }
 
@@ -87,6 +88,16 @@ SDK.prototype.write = function ( table, data ) {
     }
 
     return this;
+}
+
+SDK.prototype._log = function () {
+    if ( !this.logger ) {
+        return;
+    }
+
+    var args = [].slice.call( arguments );
+    args = [ new Date().toISOString(), "COLOR-SDK" ].concat( args );
+    this.logger.apply( null, args );
 }
 
 SDK.prototype.flush = function () {
@@ -179,7 +190,7 @@ SDK.prototype.flush = function () {
         that.emit( "warn", err );
         if ( done ) return;
         if ( retries-- > 0 ) {
-            log( "Retrying after error, in 2s. Remaining: ", retries );
+            that._log( "Retrying after error, in 2s. Remaining: ", retries );
             return setTimeout( request, 2000 );
         }
 
@@ -211,10 +222,4 @@ SDK.prototype.flush = function () {
 
 function copy ( obj ) {
     return JSON.parse( JSON.stringify( obj ) );
-}
-
-function log() {
-    var args = [].slice.call( arguments );
-    args = [ new Date().toISOString(), "COLOR-SDK" ].concat( args );
-    console.log.apply( console, args );
 }
